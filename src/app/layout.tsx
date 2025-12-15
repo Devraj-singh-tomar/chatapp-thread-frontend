@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,8 @@ export default function RootLayout({
               </div>
             </main>
           </div>
+
+          <Toaster closeButton richColors theme="dark" />
         </body>
       </html>
     </ClerkProvider>
