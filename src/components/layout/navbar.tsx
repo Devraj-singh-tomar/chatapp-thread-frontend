@@ -1,10 +1,15 @@
 "use client";
 
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, useAuth, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { BellIcon, LogInIcon, MenuIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSocket } from "@/hooks/use-socket";
+import { apiGet, createBrowserApiClient } from "@/lib/api-client";
+import { useNotificationCount } from "@/hooks/use-notification-count";
+import { toast } from "sonner";
+import { Notification } from "@/types/notification";
 
 const navItems = [
   {
@@ -32,8 +37,67 @@ const renderNavlinks = (item: (typeof navItems)[number]) => {
 };
 
 export default function Navbar() {
-  const [unReadCount, setUnReadCount] = useState(0);
+  // const [unReadCount, setUnReadCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { userId, getToken } = useAuth();
+  const { socket } = useSocket();
+
+  const apiClient = useMemo(() => createBrowserApiClient(getToken), [getToken]);
+
+  const { unreadCount, setUnreadCount, incrementUnread } =
+    useNotificationCount();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUnreadNotifications() {
+      if (!userId) {
+        if (isMounted) setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const data = await apiGet<Notification[]>(
+          apiClient,
+          "/api/notifications?unreadOnly=true"
+        );
+
+        if (!isMounted) return;
+        console.log(data);
+
+        setUnreadCount(data.length);
+      } catch (e) {
+        if (!isMounted) return;
+        console.log(`Error ocuured`);
+      }
+    }
+
+    loadUnreadNotifications();
+  }, [userId]);
+
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
+    const handleNewNotification = (payload: Notification) => {
+      incrementUnread();
+
+      toast("New Notification", {
+        description:
+          payload.type === "REPLY_ON_THREAD"
+            ? `${payload.actor.handle ?? "Someone"} commented to your thread`
+            : `${payload.actor.handle ?? "Someone"} liked your thread`,
+      });
+    };
+
+    socket.on("notification:new", handleNewNotification);
+
+    return () => {
+      socket.off("notification:new", handleNewNotification);
+    };
+  }, [socket, incrementUnread]);
 
   return (
     <header className="sticky z-40 top-0 border-b border-sidebar-border bg-sidebar/95 backdrop-blur-sm">
@@ -60,7 +124,7 @@ export default function Navbar() {
               <Button variant={"outline"} className="relative" size={"icon"}>
                 <BellIcon className="size-4" />
                 <span className="absolute translate-y-.5 translate-x-1 -right-1 -top-1 inline-flex min-w-5 min-h-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-primary/40">
-                  {unReadCount > 0 ? unReadCount : 0}
+                  {unreadCount > 0 ? unreadCount : 0}
                 </span>
               </Button>
             </Link>
