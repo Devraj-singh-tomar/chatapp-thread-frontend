@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import { Toaster } from "sonner";
 import Navbar from "@/components/layout/navbar";
+import { NotificationCountProvider } from "@/hooks/use-notification-count";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,18 +37,20 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <div className="flex min-h-screen flex-col bg-background text-foreground">
-            {/* NAVABR */}
-            <Navbar />
+          <NotificationCountProvider>
+            <div className="flex min-h-screen flex-col bg-background text-foreground">
+              {/* NAVABR */}
+              <Navbar />
 
-            <main className="flex flex-1 flex-col">
-              <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 md:py-10">
-                {children}
-              </div>
-            </main>
-          </div>
+              <main className="flex flex-1 flex-col">
+                <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 md:py-10">
+                  {children}
+                </div>
+              </main>
+            </div>
 
-          <Toaster closeButton richColors theme="dark" />
+            <Toaster closeButton richColors theme="dark" />
+          </NotificationCountProvider>
         </body>
       </html>
     </ClerkProvider>
